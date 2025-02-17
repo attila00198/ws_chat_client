@@ -39,20 +39,26 @@
     </div>
 
     <!-- Chat interface -->
-    <div class="container-fluid">
+    <div class="container">
         <div class="row">
             <!-- Sidebar -->
             <div id="sidebar" class="col-md-2 sidebar">
+                <div id="status-indicator" class="row justify-content-between align-items-center g-2">
+                    <h5>Server Status:</h5>
+                    <div id="connection-status" class="col"></div>
+                    <button id="reconnect-btn" class="col btn btn-sm btn-outline-danger" style="display: none;">🔄 Reconnect</button>
+                </div>
+                <hr>
                 <div class="sidebar-header d-flex justify-content-between">
                     <h5>Available Users</h5>
                     <button id="close-btn" class="close-btn btn btn-close"></button>
                 </div>
-                <hr>
                 <div class="sidebar-body">
                     <ul id="user-list" class="nav flex-column">
                         <!-- User list items will go here -->
                     </ul>
                 </div>
+                <hr>
             </div>
 
             <!-- Chat Area -->

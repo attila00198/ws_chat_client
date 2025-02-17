@@ -12,13 +12,14 @@ const setNickname = () => {
 
 // WebSocket kapcsolat létrehozása
 const startWebsocket = () => {
-    const HOST = "localhost"
+    const HOST = "192.168.1.120"
     const PORT = 6968
     socket = new WebSocket(`ws://${HOST}:${PORT}`);
 
     // WebSocket eseménykezelők
     socket.onopen = () => {
         console.log('Connected to:', HOST, PORT);
+        updateStatusIndicator(true)
     };
 
     socket.onmessage = (event) => {
@@ -40,6 +41,8 @@ const startWebsocket = () => {
 
     socket.onclose = () => {
         console.log('Kapcsolat megszakadt a WebSocket szerverrel');
+        uiShowMessage("Client", "A kapcsolat a szerverrel megszakadt.\nEllenőrizd a státusz jelzőt, majd próbálj meg újrakapcsolódni.")
+        updateStatusIndicator(false)
     };
 }
 
@@ -70,13 +73,29 @@ function uiShowMessage(sender, content) {
     messageContainer.scrollTop = messageContainer.scrollHeight;
 }
 
+// Státsz kijelző frissítése
+const updateStatusIndicator = (connected) => {
+    const statusIndicator = document.getElementById("connection-status");
+    const reconnectBtn= document.getElementById("reconnect-btn");
+
+    if (connected) {
+        statusIndicator.textContent = "🟢 Online";
+        statusIndicator.style.color = "green";
+        reconnectBtn.style.display = "none"; // Elrejtjük a gombot
+    } else {
+        statusIndicator.textContent = "🔴 Offline";
+        statusIndicator.style.color = "red";
+        reconnectBtn.style.display = "block"; // Megjelenik az újracsatlakozás gomb
+    }
+}
+
 // Üzenet küldése
 const sendMessage = () => {
     const messageInput = document.getElementById('message-input');
     const message = messageInput.value
 
     const msg_to_json = {
-        type: message.startsWith("/") ? "command" : "message", // ✅ Közvetlenül itt döntjük el
+        type: message.startsWith("/") ? "command" : "message",
         sender: nickname,
         content: message
     };
@@ -109,5 +128,9 @@ window.onload = () => {
 
     document.getElementById('message-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage()
+    });
+
+    document.getElementById("reconnect-btn").addEventListener('click', (e) => {
+        startWebsocket();
     });
 }
