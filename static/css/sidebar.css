@@ -1,0 +1,44 @@
+/* Alapértelmezett Sidebar stílus */
+.sidebar {
+    background-color: #212529;
+    padding: 15px;
+    z-index: 1000;
+    transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+    visibility: hidden;
+    /* Alapértelmezetten rejtve */
+    opacity: 0;
+    /* Rejtve alapértelmezetten */
+}
+
+/* Mobil nézet */
+@media (max-width: 991px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+    }
+
+    .sidebar.open {
+        visibility: visible;
+        /* Látható lesz, ha az open osztályt kapja */
+        opacity: 1;
+        height: 100vh;
+        /* Látható lesz */
+    }
+}
+
+/* Asztali nézet */
+@media (min-width: 992px) {
+    #sidebar {
+        display: block;
+        /* Asztali nézetben mindig látható */
+        visibility: visible;
+        opacity: 1;
+    }
+
+    #close-btn,
+    #open-btn {
+        display: none;
+        /* Asztali nézetben nem szükséges a menü gomb */
+    }
+}
