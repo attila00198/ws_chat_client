@@ -33,6 +33,14 @@ body {
     color: black;
 }
 
+.message.system {
+  background-color: green;
+}
+
+.message.error {
+  background-color: red;
+}
+
 #sidebar {
     transition: transform 0.3s ease-in-out;
 }

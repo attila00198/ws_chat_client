@@ -14,7 +14,7 @@ const setNickname = () => {
 const startWebsocket = () => {
     const HOST = "192.168.1.120"
     const PORT = 6968
-    socket = new WebSocket(`ws://${HOST}:${PORT}`);
+    socket = new WebSocket(`ws://${HOST}:${PORT}/ws`);
 
     // WebSocket eseménykezelők
     socket.onopen = () => {
@@ -26,16 +26,14 @@ const startWebsocket = () => {
         const data = JSON.parse(event.data)
         console.log(data)
 
-        if (data.type === "message") {
-            uiShowMessage(data.sender, data.content)
+        if (data.type === "nickname_request") {
+            socket.send(nickname)
         }
-        if (data.type === "System") {
-            if (data.content === "!NICKNAME") {
-                socket.send(nickname)
-            }
-        }
-        if (data.type === "user_list_update") {
+        else if (data.type === "user_list_update") {
             updateUserList(data.content)
+        }
+        else {
+            uiShowMessage(data.sender, data.type, data.content)
         }
     };
 
@@ -62,11 +60,19 @@ function updateUserList(user_list) {
 }
 
 // Új üzenet hozzáadása
-function uiShowMessage(sender, content) {
+function uiShowMessage(sender, type, content) {
     const messageContainer = document.getElementById("chat-window");
     const message = document.createElement('div');
 
-    message.className = `message mb-3 p-2 rounded${sender === "You" ? ' own-message' : ''}`;
+    message.className = `message mb-3 p-2 rounded`;
+
+    if (sender === "You") { message.classList.add("own-message") }
+    switch(type) {
+      case "error": { message.classList.add("error"); break; }
+      case "System": { message.classList.add("system"); break; }
+      default: { class_name = ""; break; }
+    }
+
     message.innerHTML = `<p class="m-0"><strong>${sender}:</strong> ${content}</p>`;
 
     messageContainer.appendChild(message);
@@ -93,6 +99,7 @@ const updateStatusIndicator = (connected) => {
 const sendMessage = () => {
     const messageInput = document.getElementById('message-input');
     const message = messageInput.value
+    console.log(message)
 
     const msg_to_json = {
         type: message.startsWith("/") ? "command" : "message",
@@ -100,10 +107,11 @@ const sendMessage = () => {
         content: message
     };
 
+    console.log(msg_to_json)
     socket.send(JSON.stringify(msg_to_json));
 
     messageInput.value = ""
-    if (!message.startsWith("/")) uiShowMessage("You", message)
+    if (!message.startsWith("/")) uiShowMessage("You", "message", message)
 }
 window.onload = () => {
     const unameEntryModal = new bootstrap.Modal(document.getElementById("nicknameEntryModal"), {});
