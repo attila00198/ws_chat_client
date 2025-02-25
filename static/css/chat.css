@@ -34,11 +34,16 @@ body {
 }
 
 .message.system {
-  background-color: green;
+    background-color: rgb(99, 199, 99);
 }
 
 .message.error {
-  background-color: red;
+    background-color: rgb(240, 113, 113);
+}
+
+.message.info {
+    background-color: rgb(113, 240, 240);
+    color: black;
 }
 
 #sidebar {

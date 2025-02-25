@@ -14,7 +14,7 @@ const setNickname = () => {
 const startWebsocket = () => {
     const HOST = "192.168.1.120"
     const PORT = 6968
-    socket = new WebSocket(`ws://${HOST}:${PORT}/ws`);
+    socket = new WebSocket(`ws://${HOST}:${PORT}`);
 
     // WebSocket eseménykezelők
     socket.onopen = () => {
@@ -26,7 +26,7 @@ const startWebsocket = () => {
         const data = JSON.parse(event.data)
         console.log(data)
 
-        if (data.type === "nickname_request") {
+        if (data.type === "system" && data.content === "!NICKNAME") {
             socket.send(nickname)
         }
         else if (data.type === "user_list_update") {
@@ -39,7 +39,7 @@ const startWebsocket = () => {
 
     socket.onclose = () => {
         console.log('Kapcsolat megszakadt a WebSocket szerverrel');
-        uiShowMessage("Client", "A kapcsolat a szerverrel megszakadt.\nEllenőrizd a státusz jelzőt, majd próbálj meg újrakapcsolódni.")
+        uiShowMessage("Client", "error", "A kapcsolat a szerverrel megszakadt.\nEllenőrizd a státusz jelzőt, majd próbálj meg újrakapcsolódni.")
         updateStatusIndicator(false)
     };
 }
@@ -67,10 +67,11 @@ function uiShowMessage(sender, type, content) {
     message.className = `message mb-3 p-2 rounded`;
 
     if (sender === "You") { message.classList.add("own-message") }
-    switch(type) {
-      case "error": { message.classList.add("error"); break; }
-      case "System": { message.classList.add("system"); break; }
-      default: { class_name = ""; break; }
+    switch (type) {
+        case "error": { message.classList.add("error"); break; }
+        case "system": { message.classList.add("system"); break; }
+        case "info": { message.classList.add("info"); break; }
+        default: { class_name = ""; break; }
     }
 
     message.innerHTML = `<p class="m-0"><strong>${sender}:</strong> ${content}</p>`;
@@ -82,7 +83,7 @@ function uiShowMessage(sender, type, content) {
 // Státsz kijelző frissítése
 const updateStatusIndicator = (connected) => {
     const statusIndicator = document.getElementById("connection-status");
-    const reconnectBtn= document.getElementById("reconnect-btn");
+    const reconnectBtn = document.getElementById("reconnect-btn");
 
     if (connected) {
         statusIndicator.textContent = "🟢 Online";
