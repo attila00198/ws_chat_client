@@ -1,50 +1,81 @@
-let socket = null
-let nickname = ""
+let socket = null;
+let nickname = "";
+let unameEntryModal;
 
-// Felhasználónév beállítása
-const setNickname = () => {
-    const nicknameInput = document.getElementById("nickname-input")
-    nickname = nicknameInput.value || `User${Math.floor(Math.random() * 1000)}`
-    console.info(`Nickanme is set to: ${nickname}`)
-
-    startWebsocket()
+// Constants
+const SYSTEM_MESSAGES = {
+    CONNECTON_LOST: "Megszakadt a kapcsolat a szerverrel!\nPróbálj meg később újracsatlakozni.",
+    NICKNAME_REQUEST: "!NICKNAME"
 }
 
-// WebSocket kapcsolat létrehozása
+const MESSAGE_TYPES = {
+    message: "message",
+    error: "error",
+    info: "info",
+    system: "system",
+}
+
+// Helper functions
+const addEventHandler = (elementId, event, handler) => {
+    document.getElementById(elementId)?.addEventListener(event, handler);
+}
+
+const createMessageObject = (sender, content, type = "message") => ({
+    type: content.startsWith("/") ? "command" : type,
+    sender: sender,
+    content: content
+});
+
+const handleWebSocketMessage = (data) => {
+    if (data.type === "system" && data.content === SYSTEM_MESSAGES.NICKNAME_REQUEST) {
+        socket.send(nickname);
+    } else if (data.type === "user_list_update") {
+        updateUserList(data.content);
+    } else {
+        uiShowMessage(data.sender, data.type, data.content);
+    }
+}
+
+const generateRandomNickname = () => `User${Math.floor(Math.random() * 1000)}`;
+
+const setNicknameAndConnect = () => {
+    // Setting nickname and starting WS client
+
+    const nicknameInput = document.getElementById("nickname-input");
+    nickname = nicknameInput.value || generateRandomNickname();
+    console.info(`Nickanme is set to: ${nickname}`);
+
+    startWebsocket();
+}
+
 const startWebsocket = () => {
-    const HOST = "192.168.1.120"
-    const PORT = 6968
-    socket = new WebSocket(`ws://${HOST}:${PORT}`);
+    // Creating and handling WebSocket connection
+
+    const HOST = CONFIG.ws.host;
+    const PORT = CONFIG.ws.port;
+    const isSecure = CONFIG.ws.secure;
+    const wsUrl = `${isSecure ? "wss://" : "ws://"}${HOST}:${PORT}`;
+    socket = new WebSocket(wsUrl);
 
     // WebSocket eseménykezelők
     socket.onopen = () => {
         console.log('Connected to:', HOST, PORT);
-        updateStatusIndicator(true)
+        updateStatusIndicator(true);
     };
 
     socket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log(data)
-
-        if (data.type === "system" && data.content === "!NICKNAME") {
-            socket.send(nickname)
-        }
-        else if (data.type === "user_list_update") {
-            updateUserList(data.content)
-        }
-        else {
-            uiShowMessage(data.sender, data.type, data.content)
-        }
+        const data = JSON.parse(event.data);
+        console.debug(data);
+        handleWebSocketMessage(data);
     };
 
     socket.onclose = () => {
-        console.log('Kapcsolat megszakadt a WebSocket szerverrel');
-        uiShowMessage("Client", "error", "A kapcsolat a szerverrel megszakadt.\nEllenőrizd a státusz jelzőt, majd próbálj meg újrakapcsolódni.")
+        console.log(SYSTEM_MESSAGES.CONNECTON_LOST)
+        uiShowMessage("Client", "error", `${SYSTEM_MESSAGES.CONNECTON_LOST}`)
         updateStatusIndicator(false)
     };
 }
 
-// Felhasználólista frissitése
 function updateUserList(user_list) {
     const userList = document.getElementById('user-list');
     userList.innerHTML = '';
@@ -59,20 +90,14 @@ function updateUserList(user_list) {
     });
 }
 
-// Új üzenet hozzáadása
 function uiShowMessage(sender, type, content) {
+    // Randering messages on UI respectivly of their type
+
     const messageContainer = document.getElementById("chat-window");
     const message = document.createElement('div');
 
-    message.className = `message mb-3 p-2 rounded`;
-
     if (sender === "You") { message.classList.add("own-message") }
-    switch (type) {
-        case "error": { message.classList.add("error"); break; }
-        case "system": { message.classList.add("system"); break; }
-        case "info": { message.classList.add("info"); break; }
-        default: { class_name = ""; break; }
-    }
+    message.className = `message mb-3 p-2 rounded ${MESSAGE_TYPES[type] || MESSAGE_TYPES.message}`;
 
     message.innerHTML = `<p class="m-0"><strong>${sender}:</strong> ${content}</p>`;
 
@@ -80,8 +105,9 @@ function uiShowMessage(sender, type, content) {
     messageContainer.scrollTop = messageContainer.scrollHeight;
 }
 
-// Státsz kijelző frissítése
 const updateStatusIndicator = (connected) => {
+    // Setting the state of tha status indicator
+
     const statusIndicator = document.getElementById("connection-status");
     const reconnectBtn = document.getElementById("reconnect-btn");
 
@@ -96,50 +122,40 @@ const updateStatusIndicator = (connected) => {
     }
 }
 
-// Üzenet küldése
 const sendMessage = () => {
+    // Getting message for input and sending it to the server
+
     const messageInput = document.getElementById('message-input');
-    const message = messageInput.value
-    console.log(message)
+    const message = messageInput.value;
 
-    const msg_to_json = {
-        type: message.startsWith("/") ? "command" : "message",
-        sender: nickname,
-        content: message
-    };
-
-    console.log(msg_to_json)
-    socket.send(JSON.stringify(msg_to_json));
+    socket.send(JSON.stringify(createMessageObject(nickname, message)));
 
     messageInput.value = ""
-    if (!message.startsWith("/")) uiShowMessage("You", "message", message)
+    if (!message.startsWith("/")) uiShowMessage("You", "message", message);
 }
+
+const handleNicknameSubmit = () => {
+    setNicknameAndConnect()
+    unameEntryModal.hide()
+}
+
 window.onload = () => {
-    const unameEntryModal = new bootstrap.Modal(document.getElementById("nicknameEntryModal"), {});
+    unameEntryModal = new bootstrap.Modal(document.getElementById("nicknameEntryModal"), {});
     unameEntryModal.show();
 
-    // Eseménykezelők hozzáadása
-    document.getElementById("modal-connect-btn").addEventListener("click", () => {
-        setNickname()
-        unameEntryModal.hide()
+    // Handling ninckname modal events
+    addEventHandler("modal-connect-btn", "click", handleNicknameSubmit)
+    addEventHandler("nickname-modal-close-btn", "click", handleNicknameSubmit)
+    addEventHandler("nickname-input", "keydown", (e) => {
+        if (e.key === "Enter") handleNicknameSubmit()
+    })
+
+    // Handle message input and send button
+    addEventHandler("send-btn", "click", sendMessage);
+    addEventHandler("message-input", "keydown", (e) => {
+        if (e.key === "Enter") sendMessage();
     });
 
-    document.getElementById("nickname-modal-close-btn").addEventListener("click", setNickname);
-
-    document.getElementById('nickname-input').addEventListener("keydown", (e) => {
-        if (e.key === 'Enter') {
-            setNickname()
-            unameEntryModal.hide()
-        }
-    });
-
-    document.getElementById('send-btn').addEventListener('click', sendMessage);
-
-    document.getElementById('message-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage()
-    });
-
-    document.getElementById("reconnect-btn").addEventListener('click', (e) => {
-        startWebsocket();
-    });
+    // Handle reconnect event
+    addEventHandler("reconnect-btn", "click", startWebsocket);
 }
