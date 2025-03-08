@@ -52,9 +52,9 @@ const startWebsocket = () => {
     // Creating and handling WebSocket connection
 
     const HOST = CONFIG.ws.host;
-    const PORT = CONFIG.ws.port;
-    const isSecure = CONFIG.ws.secure;
-    const wsUrl = `${isSecure ? "wss://" : "ws://"}${HOST}:${PORT}`;
+    const PORT = CONFIG.ws.port();
+    const useSSL = CONFIG.ws.useSSL;
+    const wsUrl = `${useSSL ? "wss://" : "ws://"}${HOST}:${PORT}`;
     socket = new WebSocket(wsUrl);
 
     // WebSocket eseménykezelők
